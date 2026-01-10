@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Analisis Ergonomi AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; background-color: #eef2f7; }
+        .container { max-width: 900px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .image-preview-container {
+            width: 100%;
+            height: 300px;
+            background-color: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .image-preview-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .result-box {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8); z-index: 9999;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+    <h5>Sedang Menganalisis & Menerjemahkan...</h5>
+</div>
+
+<div class="container">
+    <h2 class="text-center mb-4">Simulasi Analisis Ergonomi AI</h2>
+    
+    <div class="row">
+        <div class="col-md-6 border-end">
+            <h5 class="mb-3">1. Ambil/Upload Foto Pose</h5>
+            
+            <div class="image-preview-container">
+                <img id="imagePreview" src="/images/postur_buruk.jpg" alt="Preview Gambar">
+            </div>
+            
+            <input type="file" id="imageInput" class="form-control mb-3" accept="image/*">
+            
+            <div class="mb-3">
+                <label for="languageSelect" class="form-label fw-bold">Pilih Bahasa Output:</label>
+                <select class="form-select" id="languageSelect">
+                    <option value="id" selected>🇮🇩 Indonesia</option>
+                    <option value="en">🇺🇸 Inggris (English)</option>
+                    <option value="ja">🇯🇵 Jepang (Japanese)</option>
+                    <option value="ko">🇰🇷 Korea (Korean)</option>
+                </select>
+            </div>
+
+            <button id="analyzeBtn" class="btn btn-primary w-100 btn-lg">
+                🔍 Mulai Analisis (Simulasi)
+            </button>
+            <small class="text-muted d-block text-center mt-2">*Klik tombol ini untuk menjalankan simulasi alur.*</small>
+        </div>
+
+        <div class="col-md-6">
+             <h5 class="mb-3 ps-3">2. Hasil Analisis & Rekomendasi</h5>
+             
+             <div id="resultArea" style="display: none; padding-left: 1rem;">
+                <div class="result-box mb-4">
+                    <h6 class="fw-bold">⚠️ Deteksi Masalah:</h6>
+                    <p id="analysisTextResult" style="white-space: pre-line;"></p>
+                </div>
+
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="bi bi-volume-up-fill"></i> Pemutaran Audio Otomatis:</h6>
+                        <audio id="audioPlayer" controls class="w-100 mt-2">
+                            Your browser does not support the audio element.
+                        </audio>
+                         <small class="text-muted">Audio akan berputar otomatis setelah analisis selesai.</small>
+                    </div>
+                </div>
+             </div>
+             
+             <div id="resultPlaceholder" class="text-center text-muted py-5 ps-3">
+                <p>Belum ada analisis dilakukan.</p>
+                <p>Silakan upload foto, pilih bahasa, dan klik tombol analisis.</p>
+             </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const resultArea = document.getElementById('resultArea');
+    const resultPlaceholder = document.getElementById('resultPlaceholder');
+    const analysisTextResult = document.getElementById('analysisTextResult');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const languageSelect = document.getElementById('languageSelect'); // Element Dropdown
+
+    imageInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) { imagePreview.src = e.target.result; }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    analyzeBtn.addEventListener('click', async () => {
+        // 1. Ambil Pilihan Bahasa
+        const selectedLang = languageSelect.value;
+
+        loadingOverlay.style.display = 'flex';
+        resultArea.style.display = 'none';
+        
+        const formData = new FormData();
+        if (imageInput.files[0]) {
+            formData.append('image', imageInput.files[0]);
+        }
+        // 2. Kirim Bahasa ke Backend
+        formData.append('lang', selectedLang);
+
+        try {
+            const response = await fetch('/api/analyze-pose', {
+                method: 'POST',
+                body: formData 
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                // 3. Tampilkan Teks (Pastikan pakai variable translated_text dari backend)
+                analysisTextResult.innerText = result.analysis_text;
+                
+                audioPlayer.src = "/audio/" + result.audio_filename + "?t=" + new Date().getTime();
+                audioPlayer.load();
+                
+                resultArea.style.display = 'block';
+                resultPlaceholder.style.display = 'none';
+                
+                try {
+                    await audioPlayer.play();
+                } catch(e) {
+                    console.warn("Autoplay diblokir browser:", e);
+                }
+
+            } else {
+                alert("Error: " + (result.error || "Gagal memproses analisis"));
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Terjadi kesalahan koneksi ke server.");
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    });
+</script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</body>
+</html>
