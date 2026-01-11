@@ -39,6 +39,7 @@ def _add_natural_pauses(text):
     text = text.replace("!", "... ")
     text = text.replace("?", "?... ")
     
+
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
@@ -47,15 +48,13 @@ async def _generate_edge_tts(text, filename, voice="id-ID-GadisNeural", rate="+0
     filepath = os.path.join(AUDIO_OUTPUT_DIR, filename)
     rate, pitch, volume = _sanitize_prosody(rate, pitch, volume)
 
-    # Update: text wrapper dengan SSML manual (update lib edge-tts)
-    ssml_text = (
-        f"<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>"
-        f"<voice name='{voice}'><prosody rate='{rate}' pitch='{pitch}' volume='{volume}'>"
-        f"{text}</prosody></voice></speak>"
+    communicate = edge_tts.Communicate(
+        text=text,
+        voice=voice,
+        rate=rate,
+        pitch=pitch,
+        volume=volume,
     )
-
-    # Parameter prosody dihapus dari init, kirim ssml_text
-    communicate = edge_tts.Communicate(text=ssml_text, voice=voice)
     await communicate.save(filepath)
 
 def process_tts(text, target_lang="id", style="warm_friendly"):
